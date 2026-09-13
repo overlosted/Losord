@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Losord</title>
+<style>
+  :root{
+    --black: #0b0708;
+    --black-2: #150e0f;
+    --black-3: #1d1415;
+    --black-4: #271a1b;
+    --red: #d9273a;
+    --red-bright: #ff4d5e;
+    --red-dark: #7a1420;
+    --text: #f3e9ea;
+    --text-dim: #a68d90;
+    --border: #2c1c1e;
+    --font: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%; width:100%;
+    background:var(--black); color:var(--text);
+    font-family:var(--font); overflow:hidden;
+  }
+  button{
+    font-family:var(--font); cursor:pointer; border:none; outline:none;
+    background:var(--black-4); color:var(--text); border-radius:6px;
+    padding:8px 14px; font-size:14px; transition:background .15s;
+  }
+  button:hover{background:var(--red-dark);}
+  button.primary{background:var(--red); color:#fff; font-weight:600;}
+  button.primary:hover{background:var(--red-bright);}
+  button.ghost{background:transparent; padding:4px 8px;}
+  button.ghost:hover{background:var(--black-4);}
+  button.danger{background:transparent; color:var(--text-dim);}
+  button.danger:hover{background:var(--red-dark); color:#fff;}
+  input, textarea{
+    font-family:var(--font); background:var(--black-2); color:var(--text);
+    border:1px solid var(--border); border-radius:6px; padding:9px 11px; font-size:14px;
+  }
+  input:focus, textarea:focus{border-color:var(--red);}
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--black-4); border-radius:4px;}
+  a{color:var(--red-bright);}
+  hr{border:none; border-top:1px solid var(--border); margin:14px 0;}
+  .hidden{display:none !important;}
+
+  /* ---------- AUTH SCREEN ---------- */
+  #auth-screen{
+    height:100%; width:100%; display:flex; align-items:center; justify-content:center;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(217,39,58,0.15), transparent 40%),
+      radial-gradient(circle at 80% 80%, rgba(217,39,58,0.10), transparent 45%),
+      var(--black);
+  }
+  .auth-card{
+    width:380px; background:var(--black-2); border:1px solid var(--border);
+    border-radius:12px; padding:32px; box-shadow:0 20px 60px rgba(0,0,0,.5);
+  }
+  .auth-logo{
+    font-size:30px; font-weight:800; letter-spacing:1px; text-align:center; margin-bottom:4px;
+    color:var(--text);
+  }
+  .auth-logo span{color:var(--red-bright);}
+  .auth-sub{text-align:center; color:var(--text-dim); font-size:13px; margin-bottom:24px;}
+  .auth-tabs{display:flex; margin-bottom:20px; border-bottom:1px solid var(--border);}
+  .auth-tab{flex:1; text-align:center; padding:10px 0; cursor:pointer; color:var(--text-dim); font-weight:600; border-bottom:2px solid transparent;}
+  .auth-tab.active{color:var(--text); border-bottom:2px solid var(--red);}
+  .auth-form{display:flex; flex-direction:column; gap:12px;}
+  .auth-error{color:var(--red-bright); font-size:13px; min-height:16px;}
+  .field-label{font-size:12px; color:var(--text-dim); margin-bottom:-6px;}
+
+  /* ---------- APP LAYOUT ---------- */
+  #app{display:flex; height:100%; width:100%;}
+  #rail{
+    width:76px; background:var(--black); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; align-items:center; padding:14px 0; gap:10px;
+  }
+  .rail-btn{
+    width:50px; height:50px; border-radius:16px; background:var(--black-3);
+    display:flex; align-items:center; justify-content:center; font-size:22px;
+    color:var(--text-dim); transition:.15s; position:relative;
+  }
+  .rail-btn:hover, .rail-btn.active{border-radius:14px; background:var(--red); color:#fff;}
+  .rail-btn .badge{
+    position:absolute; top:-4px; right:-4px; background:var(--red-bright); color:#fff;
+    font-size:10px; font-weight:700; border-radius:8px; padding:1px 5px; display:none;
+  }
+  #rail-spacer{flex:1;}
+  #rail-avatar{
+    width:46px; height:46px; border-radius:50%; overflow:hidden; cursor:pointer;
+    border:2px solid transparent;
+  }
+  #rail-avatar:hover{border-color:var(--red);}
+  #rail-avatar img, .avatar-fallback{width:100%; height:100%; object-fit:cover; display:block;}
+  .avatar-fallback{
+    display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700;
+    font-size:18px;
+  }
+
+  #list-panel{
+    width:300px; background:var(--black-2); border-right:1px solid var(--border);
+    display:flex; flex-direction:column;
+  }
+  .panel-header{
+    padding:16px; font-weight:700; font-size:15px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .panel-body{flex:1; overflow-y:auto; padding:10px;}
+  .panel-section-title{
+    font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--text-dim);
+    padding:10px 8px 4px;
+  }
+  .add-friend-row{display:flex; gap:6px; padding:0 6px 10px;}
+  .add-friend-row input{flex:1;}
+
+  .list-item{
+    display:flex; align-items:center; gap:10px; padding:8px; border-radius:8px; cursor:pointer;
+  }
+  .list-item:hover{background:var(--black-3);}
+  .list-item.active{background:var(--red-dark);}
+  .list-avatar{width:38px; height:38px; border-radius:50%; overflow:hidden; flex-shrink:0;}
+  .list-avatar .avatar-fallback{font-size:15px;}
+  .list-name{font-size:14px; font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .list-sub{font-size:11px; color:var(--text-dim);}
+  .req-actions{display:flex; gap:4px;}
+  .req-actions button{padding:5px 8px; font-size:12px;}
+  .empty-note{color:var(--text-dim); font-size:13px; padding:14px 10px; line-height:1.5;}
+
+  #create-group-btn{margin:8px 6px 0;}
+
+  /* ---------- CHAT AREA ---------- */
+  #chat-area{flex:1; display:flex; flex-direction:column; min-width:0;}
+  #chat-empty{
+    flex:1; display:flex; align-items:center; justify-content:center; color:var(--text-dim);
+    font-size:15px; flex-direction:column; gap:8px;
+  }
+  #chat-header{
+    padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px;
+    font-weight:700; cursor:pointer;
+  }
+  #chat-header .list-avatar{width:32px; height:32px;}
+  #chat-header-sub{font-size:12px; color:var(--text-dim); font-weight:400;}
+
+  #messages{flex:1; overflow-y:auto; padding:16px 18px; display:flex; flex-direction:column; gap:2px;}
+  .msg-row{
+    display:flex; gap:12px; padding:8px 8px; border-radius:8px; position:relative;
+  }
+  .msg-row:hover{background:rgba(255,255,255,0.02);}
+  .msg-row:hover .msg-actions{opacity:1;}
+  .msg-avatar{width:38px; height:38px; border-radius:50%; overflow:hidden; flex-shrink:0; cursor:pointer; margin-top:2px;}
+  .msg-body{flex:1; min-width:0;}
+  .msg-meta{display:flex; align-items:baseline; gap:8px;}
+  .msg-nick{font-weight:700; font-size:14px; cursor:pointer;}
+  .msg-nick:hover{text-decoration:underline; color:var(--red-bright);}
+  .msg-time{font-size:11px; color:var(--text-dim);}
+  .msg-reply-ref{
+    font-size:12px; color:var(--text-dim); border-left:2px solid var(--red-dark);
+    padding:2px 8px; margin:3px 0 4px; background:var(--black-3); border-radius:0 4px 4px 0;
+  }
+  .msg-reply-ref b{color:var(--text);}
+  .msg-forwarded{font-size:11px; color:var(--text-dim); font-style:italic; margin-bottom:2px;}
+  .msg-text{font-size:14.5px; line-height:1.45; white-space:pre-wrap; word-break:break-word;}
+  .msg-image{max-width:320px; max-height:320px; border-radius:8px; margin-top:6px; display:block; cursor:pointer;}
+  .msg-reactions{display:flex; gap:6px; margin-top:6px; flex-wrap:wrap;}
+  .reaction-chip{
+    background:var(--black-3); border:1px solid var(--border); border-radius:12px;
+    padding:2px 8px; font-size:12px; display:flex; align-items:center; gap:4px; cursor:pointer;
+  }
+  .reaction-chip.mine{border-color:var(--red); background:var(--red-dark);}
+  .reaction-chip:hover{background:var(--black-4);}
+  .msg-actions{
+    position:absolute; top:-14px; right:8px; opacity:0; transition:.12s; display:flex; gap:2px;
+    background:var(--black-3); border:1px solid var(--border); border-radius:8px; padding:2px;
+  }
+  .msg-actions button{padding:4px 7px; font-size:13px; background:transparent;}
+  .msg-actions button:hover{background:var(--red-dark);}
+  .emoji-picker{
+    position:absolute; top:-46px; right:8px; background:var(--black-3); border:1px solid var(--border);
+    border-radius:8px; padding:6px; display:flex; gap:4px; z-index:20;
+  }
+  .emoji-picker span{cursor:pointer; font-size:18px; padding:2px;}
+  .emoji-picker span:hover{transform:scale(1.2);}
+
+  #reply-bar{
+    display:flex; align-items:center; justify-content:space-between; background:var(--black-3);
+    border:1px solid var(--border); border-radius:8px 8px 0 0; padding:8px 14px; font-size:12.5px;
+    color:var(--text-dim); margin:0 16px;
+  }
+  #input-bar{
+    display:flex; align-items:flex-end; gap:8px; padding:14px 16px 18px;
+  }
+  #input-bar textarea{
+    flex:1; resize:none; max-height:120px; min-height:42px; border-radius:10px; padding:11px 14px;
+  }
+  #image-preview-wrap{padding:0 16px; display:flex; align-items:center; gap:10px;}
+  #image-preview-wrap img{max-height:70px; border-radius:6px;}
+  .icon-btn{
+    width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:19px; background:var(--black-3); flex-shrink:0;
+  }
+  .icon-btn:hover{background:var(--red-dark);}
+
+  /* ---------- MODALS ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center;
+    z-index:100;
+  }
+  .modal-box{
+    background:var(--black-2); border:1px solid var(--border); border-radius:12px; width:380px;
+    max-width:90vw; max-height:85vh; overflow-y:auto; padding:22px;
+  }
+  .modal-title{font-weight:700; font-size:17px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;}
+  .profile-banner{height:70px; background:linear-gradient(135deg, var(--red-dark), var(--red)); border-radius:10px 10px 0 0; margin:-22px -22px 0;}
+  .profile-avatar-lg{
+    width:84px; height:84px; border-radius:50%; overflow:hidden; border:5px solid var(--black-2);
+    margin:-42px 0 8px 6px; position:relative;
+  }
+  .profile-avatar-lg .avatar-fallback{font-size:34px;}
+  .profile-nick{font-size:19px; font-weight:700; margin:0 0 2px 6px;}
+  .profile-bio{font-size:13.5px; color:var(--text-dim); margin:8px 6px 16px; line-height:1.5; white-space:pre-wrap;}
+  .modal-actions{display:flex; gap:8px; margin:0 6px;}
+  .checkbox-row{display:flex; align-items:center; gap:8px; padding:6px 4px; cursor:pointer;}
+  .checkbox-row input{width:auto;}
+  .close-x{font-size:20px; color:var(--text-dim); cursor:pointer;}
+  .close-x:hover{color:var(--red-bright);}
+
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--black-3);
+    border:1px solid var(--red); color:var(--text); padding:10px 18px; border-radius:8px; font-size:13.5px;
+    z-index:200; box-shadow:0 6px 20px rgba(0,0,0,.4);
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================ AUTH SCREEN ============================ -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">LOS<span>ORD</span></div>
+    <div class="auth-sub">Talk with your friends.</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" data-tab="login">Log In</div>
+      <div class="auth-tab" data-tab="register">Register</div>
+    </div>
+
+    <div id="login-form" class="auth-form">
+      <div class="field-label">Nickname</div>
+      <input id="login-nick" type="text" placeholder="your nickname" autocomplete="username" />
+      <div class="field-label">Password</div>
+      <input id="login-pass" type="password" placeholder="password" autocomplete="current-password" />
+      <div class="auth-error" id="login-error"></div>
+      <button class="primary" id="login-btn">Log In</button>
+    </div>
+
+    <div id="register-form" class="auth-form hidden">
+      <div class="field-label">Nickname (must be unique)</div>
+      <input id="reg-nick" type="text" placeholder="3-20 chars: letters, numbers, _" autocomplete="username" />
+      <div class="field-label">Password (min. 6 characters)</div>
+      <input id="reg-pass" type="password" placeholder="password" autocomplete="new-password" />
+      <div class="field-label">Confirm password</div>
+      <input id="reg-pass2" type="password" placeholder="repeat password" autocomplete="new-password" />
+      <div class="field-label">Bio (optional)</div>
+      <textarea id="reg-bio" rows="2" placeholder="Tell others about yourself..."></textarea>
+      <div class="auth-error" id="register-error"></div>
+      <button class="primary" id="register-btn">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ MAIN APP ============================ -->
+<div id="app" class="hidden">
+  <div id="rail">
+    <div class="rail-btn active" id="rail-friends" title="Friends">🫂<span class="badge" id="req-badge"></span></div>
+    <div class="rail-btn" id="rail-groups" title="Groups">👥</div>
+    <div id="rail-spacer"></div>
+    <div id="rail-avatar" title="Your profile"></div>
+  </div>
+
+  <div id="list-panel">
+    <!-- FRIENDS PANEL -->
+    <div id="friends-panel">
+      <div class="panel-header">Friends</div>
+      <div class="add-friend-row">
+        <input id="add-friend-input" type="text" placeholder="Add friend by nickname" />
+        <button class="primary" id="add-friend-btn">Send</button>
+      </div>
+      <div class="panel-body" id="friends-body"></div>
+    </div>
+    <!-- GROUPS PANEL -->
+    <div id="groups-panel" class="hidden">
+      <div class="panel-header">Groups</div>
+      <div class="panel-body">
+        <button id="create-group-btn" class="primary" style="width:calc(100% - 12px); margin:8px 6px;">+ Create Group</button>
+        <div id="groups-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="chat-area">
+    <div id="chat-empty">
+      <div style="font-size:40px;">💬</div>
+      <div>Pick a friend or a group to start chatting</div>
+    </div>
+    <div id="chat-active" class="hidden" style="display:flex; flex-direction:column; height:100%;">
+      <div id="chat-header"></div>
+      <div id="messages"></div>
+      <div id="reply-bar" class="hidden"></div>
+      <div id="image-preview-wrap" class="hidden"></div>
+      <div id="input-bar">
+        <div class="icon-btn" id="attach-btn" title="Attach image">📎</div>
+        <input type="file" id="image-input" accept="image/*" class="hidden" />
+        <textarea id="msg-input" rows="1" placeholder="Message..."></textarea>
+        <div class="icon-btn" id="send-btn" title="Send">➤</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+/* =========================================================================
+   1) FIREBASE CONFIG — paste your own project config here.
+   See the tutorial that was sent along with this file for step-by-step
+   instructions on how to create this project in the Firebase Console.
+   ========================================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyB-eXVoDl4jkAbsO35dGOlUhn_8Y5GNvAU",
+  authDomain: "losord-d814c.firebaseapp.com",
+  projectId: "losord-d814c",
+  storageBucket: "losord-d814c.firebasestorage.app",
+  messagingSenderId: "160036456578",
+  appId: "1:160036456578:web:737d72d414ef85cba48c9b",
+  measurementId: "G-NM7PSTZM2Q"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const FieldValue = firebase.firestore.FieldValue;
+const EMAIL_SUFFIX = "@losord.local"; // fake-email trick so users only ever type a nickname
+
+/* ---------------------------- helpers ---------------------------- */
+const $ = (id) => document.getElementById(id);
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str ?? '';
+  return d.innerHTML;
+}
+function showToast(msg){
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 3200);
+}
+function colorForUid(uid){
+  const palette = ['#d9273a','#7a1420','#a83246','#5e1a24','#c2455a','#8f1f2e'];
+  let sum = 0;
+  for(const c of (uid||'x')) sum += c.charCodeAt(0);
+  return palette[sum % palette.length];
+}
+function avatarHtml(user, size){
+  if(user && user.avatar){
+    return `<img src="${escapeHtml(user.avatar)}" onerror="this.style.display='none'"/>`;
+  }
+  const letter = (user && user.nickname) ? user.nickname[0].toUpperCase() : '?';
+  const bg = colorForUid(user ? user.uid : 'x');
+  return `<div class="avatar-fallback" style="background:${bg};">${escapeHtml(letter)}</div>`;
+}
+function formatTimestamp(ts){
+  if(!ts) return '';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const pad = n => String(n).padStart(2,'0');
+  return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function chatIdFor(uidA, uidB){ return [uidA, uidB].sort().join('_'); }
+
+const REACTION_EMOJIS = ['👍','❤️','😂','😮','😢','🔥'];
+
+/* ---------------------------- app state ---------------------------- */
+let me = null;                 // { uid, nickname, nicknameLower, bio, avatar }
+let userCache = {};             // uid -> user profile (cached lookups)
+let currentChat = null;         // { id, type:'dm'|'group', name, members[], otherUid }
+let currentMessages = [];       // live cache of messages in the open chat
+let replyingTo = null;          // message object being replied to
+let pendingImageData = null;    // base64 data url of image about to be sent
+
+let unsubFriends = null, unsubIncoming = null, unsubOutgoing = null,
+    unsubGroups = null, unsubMessages = null, unsubChatMeta = null;
+
+/* =========================================================================
+   2) AUTH: register / login / logout
+   ========================================================================= */
+
+$('login-btn').addEventListener('click', doLogin);
+$('register-btn').addEventListener('click', doRegister);
+
+document.querySelectorAll('.auth-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    $('login-form').classList.toggle('hidden', tab.dataset.tab!=='login');
+    $('register-form').classList.toggle('hidden', tab.dataset.tab!=='register');
+  });
+});
+
+async function doRegister(){
+  const errEl = $('register-error'); errEl.textContent = '';
+  const nickname = $('reg-nick').value.trim();
+  const pass = $('reg-pass').value;
+  const pass2 = $('reg-pass2').value;
+  const bio = $('reg-bio').value.trim();
+
+  if(!/^[A-Za-z0-9_]{3,20}$/.test(nickname)){
+    errEl.textContent = 'Nickname must be 3-20 characters: letters, numbers, underscore.'; return;
+  }
+  if(pass.length < 6){ errEl.textContent = 'Password must be at least 6 characters.'; return; }
+  if(pass !== pass2){ errEl.textContent = 'Passwords do not match.'; return; }
+
+  const nickLower = nickname.toLowerCase();
+  $('register-btn').disabled = true;
+  try{
+    // 1) check nickname isn't taken
+    const nameDoc = await db.collection('usernames').doc(nickLower).get();
+    if(nameDoc.exists){
+      errEl.textContent = 'This nickname is already taken.';
+      $('register-btn').disabled = false; return;
+    }
+    // 2) create the auth account (fake email = nickname)
+    const cred = await auth.createUserWithEmailAndPassword(nickLower + EMAIL_SUFFIX, pass);
+    const uid = cred.user.uid;
+    // 3) reserve nickname + create profile doc (best-effort transaction)
+    const batch = db.batch();
+    batch.set(db.collection('usernames').doc(nickLower), { uid });
+    batch.set(db.collection('users').doc(uid), {
+      nickname, nicknameLower: nickLower, bio: bio || '', avatar: '',
+      createdAt: FieldValue.serverTimestamp()
+    });
+    await batch.commit();
+  }catch(e){
+    errEl.textContent = friendlyAuthError(e);
+    $('register-btn').disabled = false;
+  }
+}
+
+async function doLogin(){
+  const errEl = $('login-error'); errEl.textContent = '';
+  const nickname = $('login-nick').value.trim().toLowerCase();
+  const pass = $('login-pass').value;
+  if(!nickname || !pass){ errEl.textContent = 'Enter your nickname and password.'; return; }
+  $('login-btn').disabled = true;
+  try{
+    await auth.signInWithEmailAndPassword(nickname + EMAIL_SUFFIX, pass);
+  }catch(e){
+    errEl.textContent = friendlyAuthError(e);
+  }
+  $('login-btn').disabled = false;
+}
+
+function friendlyAuthError(e){
+  const code = e && e.code || '';
+  if(code.includes('user-not-found') || code.includes('invalid-credential') || code.includes('wrong-password'))
+    return 'Wrong nickname or password.';
+  if(code.includes('email-already-in-use')) return 'This nickname is already taken.';
+  if(code.includes('weak-password')) return 'Password is too weak.';
+  return e.message || 'Something went wrong.';
+}
+
+auth.onAuthStateChanged(async (user)=>{
+  if(user){
+    const doc = await db.collection('users').doc(user.uid).get();
+    if(!doc.exists){ auth.signOut(); return; }
+    me = { uid: user.uid, ...doc.data() };
+    userCache[me.uid] = me;
+    $('auth-screen').classList.add('hidden');
+    $('app').classList.remove('hidden');
+    renderRailAvatar();
+    listenFriends();
+    listenIncomingRequests();
+    listenOutgoingRequests();
+    listenGroups();
+  } else {
+    me = null;
+    cleanupListeners();
+    $('app').classList.add('hidden');
+    $('auth-screen').classList.remove('hidden');
+  }
+});
+
+function cleanupListeners(){
+  [unsubFriends, unsubIncoming, unsubOutgoing, unsubGroups, unsubMessages, unsubChatMeta]
+    .forEach(u=>{ if(u) u(); });
+  currentChat = null; currentMessages = [];
+  $('chat-active').classList.add('hidden');
+  $('chat-empty').classList.remove('hidden');
+}
+
+/* =========================================================================
+   3) USER PROFILE LOOKUP (cached)
+   ========================================================================= */
+async function getUser(uid){
+  if(userCache[uid]) return userCache[uid];
+  const doc = await db.collection('users').doc(uid).get();
+  if(!doc.exists) return { uid, nickname: '(unknown)', bio: '', avatar: '' };
+  const data = { uid, ...doc.data() };
+  userCache[uid] = data;
+  return data;
+}
+
+function renderRailAvatar(){
+  $('rail-avatar').innerHTML = avatarHtml(me);
+}
+$('rail-avatar').addEventListener('click', ()=>openOwnProfileModal());
+
+/* =========================================================================
+   4) RAIL TAB SWITCHING
+   ========================================================================= */
+$('rail-friends').addEventListener('click', ()=>{
+  $('rail-friends').classList.add('active'); $('rail-groups').classList.remove('active');
+  $('friends-panel').classList.remove('hidden'); $('groups-panel').classList.add('hidden');
+});
+$('rail-groups').addEventListener('click', ()=>{
+  $('rail-groups').classList.add('active'); $('rail-friends').classList.remove('active');
+  $('groups-panel').classList.remove('hidden'); $('friends-panel').classList.add('hidden');
+});
+
+/* =========================================================================
+   5) FRIENDS: list, add, incoming/outgoing requests
+   ========================================================================= */
+let friendUids = new Set();
+let incomingRequests = []; // {id, from}
+let outgoingRequests = []; // {id, to}
+
+function listenFriends(){
+  unsubFriends = db.collection('users').doc(me.uid).collection('friends')
+    .onSnapshot(async snap=>{
+      friendUids = new Set(snap.docs.map(d=>d.id));
+      await Promise.all([...friendUids].map(getUser));
+      renderFriendsBody();
+    });
+}
+function listenIncomingRequests(){
+  unsubIncoming = db.collection('friendRequests')
+    .where('to','==', me.uid).where('status','==','pending')
+    .onSnapshot(async snap=>{
+      incomingRequests = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      await Promise.all(incomingRequests.map(r=>getUser(r.from)));
+      $('req-badge').style.display = incomingRequests.length ? 'block' : 'none';
+      $('req-badge').textContent = incomingRequests.length;
+      renderFriendsBody();
+    });
+}
+function listenOutgoingRequests(){
+  unsubOutgoing = db.collection('friendRequests')
+    .where('from','==', me.uid).where('status','==','pending')
+    .onSnapshot(async snap=>{
+      outgoingRequests = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      await Promise.all(outgoingRequests.map(r=>getUser(r.to)));
+      renderFriendsBody();
+    });
+}
+
+function renderFriendsBody(){
+  const el = $('friends-body');
+  let html = '';
+
+  if(incomingRequests.length){
+    html += `<div class="panel-section-title">Friend requests</div>`;
+    incomingRequests.forEach(r=>{
+      const u = userCache[r.from] || {nickname:'...'};
+      html += `<div class="list-item">
+        <div class="list-avatar">${avatarHtml(u)}</div>
+        <div class="list-name">${escapeHtml(u.nickname)}</div>
+        <div class="req-actions">
+          <button class="primary" data-accept="${r.id}" data-from="${r.from}">Accept</button>
+          <button class="danger" data-decline="${r.id}">✕</button>
+        </div>
+      </div>`;
+    });
+  }
+  if(outgoingRequests.length){
+    html += `<div class="panel-section-title">Pending (sent by you)</div>`;
+    outgoingRequests.forEach(r=>{
+      const u = userCache[r.to] || {nickname:'...'};
+      html += `<div class="list-item">
+        <div class="list-avatar">${avatarHtml(u)}</div>
+        <div class="list-name">${escapeHtml(u.nickname)}</div>
+        <div class="list-sub">pending</div>
+      </div>`;
+    });
+  }
+
+  html += `<div class="panel-section-title">Friends — ${friendUids.size}</div>`;
+  if(friendUids.size === 0){
+    html += `<div class="empty-note">No friends yet. Add someone by their nickname above, or send them a single message from their profile.</div>`;
+  }
+  [...friendUids].forEach(uid=>{
+    const u = userCache[uid] || {nickname:'...'};
+    html += `<div class="list-item" data-open-dm="${uid}">
+      <div class="list-avatar">${avatarHtml(u)}</div>
+      <div class="list-name">${escapeHtml(u.nickname)}</div>
+    </div>`;
+  });
+
+  el.innerHTML = html;
+
+  el.querySelectorAll('[data-accept]').forEach(b=>b.addEventListener('click', ()=>acceptFriendRequest(b.dataset.accept, b.dataset.from)));
+  el.querySelectorAll('[data-decline]').forEach(b=>b.addEventListener('click', ()=>declineFriendRequest(b.dataset.decline)));
+  el.querySelectorAll('[data-open-dm]').forEach(row=>row.addEventListener('click', ()=>openDM(row.dataset.openDm)));
+}
+
+$('add-friend-btn').addEventListener('click', addFriendByNickname);
+$('add-friend-input').addEventListener('keydown', e=>{ if(e.key==='Enter') addFriendByNickname(); });
+
+async function addFriendByNickname(){
+  const input = $('add-friend-input');
+  const nick = input.value.trim().toLowerCase();
+  if(!nick) return;
+  if(nick === me.nicknameLower){ showToast("You can't add yourself."); return; }
+  const nameDoc = await db.collection('usernames').doc(nick).get();
+  if(!nameDoc.exists){ showToast('No user with that nickname.'); return; }
+  const targetUid = nameDoc.data().uid;
+  await sendFriendRequestTo(targetUid);
+  input.value = '';
+}
+
+async function sendFriendRequestTo(targetUid){
+  if(targetUid === me.uid){ showToast("You can't add yourself."); return; }
+  if(friendUids.has(targetUid)){ showToast('You are already friends.'); return; }
+  const existing = await db.collection('friendRequests')
+    .where('from','in',[me.uid, targetUid]).where('to','in',[me.uid, targetUid])
+    .where('status','==','pending').get();
+  const already = existing.docs.some(d=>{
+    const v = d.data();
+    return (v.from===me.uid && v.to===targetUid) || (v.from===targetUid && v.to===me.uid);
+  });
+  if(already){ showToast('Friend request already pending.'); return; }
+  await db.collection('friendRequests').add({
+    from: me.uid, to: targetUid, status: 'pending', createdAt: FieldValue.serverTimestamp()
+  });
+  showToast('Friend request sent.');
+}
+
+async function acceptFriendRequest(reqId, fromUid){
+  const batch = db.batch();
+  batch.update(db.collection('friendRequests').doc(reqId), { status:'accepted' });
+  batch.set(db.collection('users').doc(me.uid).collection('friends').doc(fromUid), { since: FieldValue.serverTimestamp() });
+  batch.set(db.collection('users').doc(fromUid).collection('friends').doc(me.uid), { since: FieldValue.serverTimestamp() });
+  await batch.commit();
+  await db.collection('friendRequests').doc(reqId).delete();
+  showToast('Friend added!');
+}
+async function declineFriendRequest(reqId){
+  await db.collection('friendRequests').doc(reqId).delete();
+}
+
+/* =========================================================================
+   6) GROUPS
+   ========================================================================= */
+let myGroups = [];
+
+function listenGroups(){
+  unsubGroups = db.collection('groups').where('members','array-contains', me.uid)
+    .onSnapshot(snap=>{
+      myGroups = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      renderGroupsBody();
+    });
+}
+function renderGroupsBody(){
+  const el = $('groups-body');
+  if(myGroups.length===0){
+    el.innerHTML = `<div class="empty-note">No groups yet. Create one from your friends list.</div>`;
+    return;
+  }
+  el.innerHTML = myGroups.map(g=>`
+    <div class="list-item" data-open-group="${g.id}">
+      <div class="list-avatar"><div class="avatar-fallback" style="background:${colorForUid(g.id)}">${escapeHtml(g.name[0].toUpperCase())}</div></div>
+      <div class="list-name">${escapeHtml(g.name)}</div>
+      <div class="list-sub">${g.members.length} members</div>
+    </div>`).join('');
+  el.querySelectorAll('[data-open-group]').forEach(row=>row.addEventListener('click', ()=>openGroup(row.dataset.openGroup)));
+}
+
+$('create-group-btn').addEventListener('click', ()=>{
+  if(friendUids.size===0){ showToast('Add some friends first.'); return; }
+  const friendsHtml = [...friendUids].map(uid=>{
+    const u = userCache[uid] || {nickname:'...'};
+    return `<label class="checkbox-row"><input type="checkbox" value="${uid}"> ${escapeHtml(u.nickname)}</label>`;
+  }).join('');
+  openModal(`
+    <div class="modal-title">Create Group <span class="close-x" data-close>✕</span></div>
+    <div class="field-label" style="margin-bottom:6px;">Group name</div>
+    <input id="new-group-name" type="text" placeholder="e.g. Weekend Squad" style="width:100%; margin-bottom:14px;" />
+    <div class="field-label" style="margin-bottom:6px;">Add members</div>
+    <div id="group-friend-list">${friendsHtml}</div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="primary" id="confirm-create-group" style="flex:1;">Create</button>
+    </div>
+  `);
+  $('confirm-create-group').addEventListener('click', async ()=>{
+    const name = $('new-group-name').value.trim();
+    if(!name){ showToast('Give your group a name.'); return; }
+    const checked = [...document.querySelectorAll('#group-friend-list input:checked')].map(i=>i.value);
+    const members = [me.uid, ...checked];
+    const ref = await db.collection('groups').add({
+      name, members, owner: me.uid, createdAt: FieldValue.serverTimestamp()
+    });
+    closeModal();
+    openGroup(ref.id);
+  });
+});
+
+/* =========================================================================
+   7) OPENING CHATS (DM or GROUP) + LISTENING TO MESSAGES
+   ========================================================================= */
+async function openDM(otherUid){
+  const other = await getUser(otherUid);
+  const id = chatIdFor(me.uid, otherUid);
+  currentChat = { id, type:'dm', otherUid, name: other.nickname, members:[me.uid, otherUid] };
+  await ensureChatDoc(id, 'dm', [me.uid, otherUid], null);
+  activateChat();
+  document.querySelectorAll('[data-open-dm]').forEach(r=>r.classList.toggle('active', r.dataset.openDm===otherUid));
+}
+async function openGroup(groupId){
+  const g = myGroups.find(g=>g.id===groupId);
+  if(!g) return;
+  currentChat = { id: groupId, type:'group', name: g.name, members: g.members };
+  activateChat();
+  document.querySelectorAll('[data-open-group]').forEach(r=>r.classList.toggle('active', r.dataset.openGroup===groupId));
+}
+async function ensureChatDoc(id, type, members, name){
+  const ref = db.collection('chats').doc(id);
+  const doc = await ref.get();
+  if(!doc.exists){
+    await ref.set({ type, members, name: name||null, createdAt: FieldValue.serverTimestamp() });
+  }
+}
+
+function activateChat(){
+  $('chat-empty').classList.add('hidden');
+  $('chat-active').classList.remove('hidden');
+  replyingTo = null; pendingImageData = null;
+  renderReplyBar(); renderImagePreview();
+  renderChatHeader();
+  if(unsubMessages) unsubMessages();
+  const collectionId = currentChat.type==='dm' ? 'chats' : 'groups';
+  unsubMessages = db.collection(collectionId).doc(currentChat.id).collection('messages')
+    .orderBy('timestamp','asc')
+    .onSnapshot(async snap=>{
+      currentMessages = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      const uids = [...new Set(currentMessages.map(m=>m.senderId))];
+      await Promise.all(uids.map(getUser));
+      renderMessages();
+    });
+}
+
+function renderChatHeader(){
+  const header = $('chat-header');
+  if(currentChat.type==='dm'){
+    const u = userCache[currentChat.otherUid] || {nickname: currentChat.name};
+    header.innerHTML = `<div class="list-avatar">${avatarHtml(u)}</div>
+      <div>${escapeHtml(u.nickname)}</div>`;
+    header.onclick = ()=>openProfileModal(currentChat.otherUid);
+  } else {
+    header.innerHTML = `<div class="list-avatar"><div class="avatar-fallback" style="background:${colorForUid(currentChat.id)}">${escapeHtml(currentChat.name[0].toUpperCase())}</div></div>
+      <div>${escapeHtml(currentChat.name)} <span id="chat-header-sub">${currentChat.members.length} members</span></div>`;
+    header.onclick = null;
+  }
+}
+
+/* =========================================================================
+   8) RENDERING MESSAGES
+   ========================================================================= */
+function renderMessages(){
+  const el = $('messages');
+  el.innerHTML = currentMessages.map(m=>{
+    const sender = userCache[m.senderId] || {nickname:'...'};
+    const isMine = m.senderId === me.uid;
+    let replyHtml = '';
+    if(m.replyTo){
+      replyHtml = `<div class="msg-reply-ref">↩ replying to <b>${escapeHtml(m.replyTo.senderNick)}</b>: ${escapeHtml((m.replyTo.text||'').slice(0,80))}</div>`;
+    }
+    let forwardHtml = m.forwardedFrom ? `<div class="msg-forwarded">↪ Forwarded from ${escapeHtml(m.forwardedFrom)}</div>` : '';
+    let imgHtml = m.imageData ? `<img class="msg-image" src="${m.imageData}" />` : '';
+    let reactHtml = '';
+    if(m.reactions){
+      const chips = Object.entries(m.reactions).filter(([e,uids])=>uids && uids.length>0).map(([emoji, uids])=>{
+        const mine = uids.includes(me.uid);
+        return `<div class="reaction-chip ${mine?'mine':''}" data-react="${m.id}" data-emoji="${emoji}">${emoji} ${uids.length}</div>`;
+      }).join('');
+      if(chips) reactHtml = `<div class="msg-reactions">${chips}</div>`;
+    }
+    return `
+      <div class="msg-row" data-msg-id="${m.id}">
+        <div class="msg-avatar" data-open-profile="${m.senderId}">${avatarHtml(sender)}</div>
+        <div class="msg-body">
+          ${forwardHtml}
+          <div class="msg-meta">
+            <span class="msg-nick" data-open-profile="${m.senderId}">${escapeHtml(sender.nickname)}</span>
+            <span class="msg-time">${formatTimestamp(m.timestamp)}</span>
+          </div>
+          ${replyHtml}
+          ${m.text ? `<div class="msg-text">${escapeHtml(m.text)}</div>` : ''}
+          ${imgHtml}
+          ${reactHtml}
+        </div>
+        <div class="msg-actions">
+          <button data-react-open="${m.id}" title="React">😊</button>
+          <button data-reply="${m.id}" title="Reply">↩</button>
+          <button data-forward="${m.id}" title="Forward">↪</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  el.scrollTop = el.scrollHeight;
+
+  el.querySelectorAll('[data-open-profile]').forEach(node=>{
+    node.addEventListener('click', ()=>openProfileModal(node.dataset.openProfile));
+  });
+  el.querySelectorAll('[data-reply]').forEach(node=>{
+    node.addEventListener('click', ()=>startReply(node.dataset.reply));
+  });
+  el.querySelectorAll('[data-forward]').forEach(node=>{
+    node.addEventListener('click', ()=>openForwardModal(node.dataset.forward));
+  });
+  el.querySelectorAll('[data-react]').forEach(node=>{
+    node.addEventListener('click', ()=>toggleReaction(node.dataset.react, node.dataset.emoji));
+  });
+  el.querySelectorAll('[data-react-open]').forEach(node=>{
+    node.addEventListener('click', (ev)=>openEmojiPicker(ev, node.dataset.reactOpen));
+  });
+}
+
+function openEmojiPicker(ev, msgId){
+  document.querySelectorAll('.emoji-picker').forEach(p=>p.remove());
+  const picker = document.createElement('div');
+  picker.className = 'emoji-picker';
+  picker.innerHTML = REACTION_EMOJIS.map(e=>`<span data-emoji="${e}">${e}</span>`).join('');
+  ev.target.closest('.msg-actions').appendChild(picker);
+  picker.querySelectorAll('span').forEach(s=>{
+    s.addEventListener('click', ()=>{ toggleReaction(msgId, s.dataset.emoji); picker.remove(); });
+  });
+  setTimeout(()=>{
+    document.addEventListener('click', function outside(e){
+      if(!picker.contains(e.target)){ picker.remove(); document.removeEventListener('click', outside); }
+    });
+  },0);
+}
+
+async function toggleReaction(msgId, emoji){
+  const msg = currentMessages.find(m=>m.id===msgId);
+  const already = msg && msg.reactions && msg.reactions[emoji] && msg.reactions[emoji].includes(me.uid);
+  const collectionId = currentChat.type==='dm' ? 'chats' : 'groups';
+  const ref = db.collection(collectionId).doc(currentChat.id).collection('messages').doc(msgId);
+  const field = `reactions.${emoji}`;
+  await ref.update({ [field]: already ? FieldValue.arrayRemove(me.uid) : FieldValue.arrayUnion(me.uid) });
+}
+
+/* =========================================================================
+   9) SENDING MESSAGES (with the "1 message until friends" rule for DMs)
+   ========================================================================= */
+$('msg-input').addEventListener('keydown', e=>{
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); }
+});
+$('send-btn').addEventListener('click', sendMessage);
+$('attach-btn').addEventListener('click', ()=>$('image-input').click());
+$('image-input').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  if(file.size > 900*1024){ showToast('Image too large — please use one under ~900 KB.'); return; }
+  const reader = new FileReader();
+  reader.onload = ()=>{ pendingImageData = reader.result; renderImagePreview(); };
+  reader.readAsDataURL(file);
+});
+
+function renderImagePreview(){
+  const wrap = $('image-preview-wrap');
+  if(!pendingImageData){ wrap.classList.add('hidden'); wrap.innerHTML=''; return; }
+  wrap.classList.remove('hidden');
+  wrap.innerHTML = `<img src="${pendingImageData}"/><button class="ghost" id="cancel-image">Remove image</button>`;
+  $('cancel-image').addEventListener('click', ()=>{ pendingImageData=null; $('image-input').value=''; renderImagePreview(); });
+}
+
+function startReply(msgId){
+  replyingTo = currentMessages.find(m=>m.id===msgId);
+  renderReplyBar();
+  $('msg-input').focus();
+}
+function renderReplyBar(){
+  const bar = $('reply-bar');
+  if(!replyingTo){ bar.classList.add('hidden'); bar.innerHTML=''; return; }
+  const sender = userCache[replyingTo.senderId] || {nickname:'...'};
+  bar.classList.remove('hidden');
+  bar.innerHTML = `<span>Replying to <b>${escapeHtml(sender.nickname)}</b>: ${escapeHtml((replyingTo.text||'[image]').slice(0,60))}</span><span class="close-x" id="cancel-reply">✕</span>`;
+  $('cancel-reply').addEventListener('click', ()=>{ replyingTo=null; renderReplyBar(); });
+}
+
+async function areFriends(uidA, uidB){
+  const doc = await db.collection('users').doc(uidA).collection('friends').doc(uidB).get();
+  return doc.exists;
+}
+
+async function sendMessage(){
+  const input = $('msg-input');
+  const text = input.value.trim();
+  if(!text && !pendingImageData) return;
+  if(!currentChat) return;
+
+  // Enforce: in a DM, if not friends yet, you may send only ONE message until accepted.
+  if(currentChat.type==='dm'){
+    const friends = await areFriends(me.uid, currentChat.otherUid);
+    if(!friends){
+      const myMsgsSnap = await db.collection('chats').doc(currentChat.id).collection('messages')
+        .where('senderId','==', me.uid).limit(1).get();
+      if(!myMsgsSnap.empty){
+        showToast("You already sent one message. You can send more once they accept your friend request.");
+        return;
+      }
+    }
+  }
+
+  const payload = {
+    senderId: me.uid,
+    senderNick: me.nickname,
+    text: text || '',
+    imageData: pendingImageData || null,
+    timestamp: FieldValue.serverTimestamp(),
+    reactions: {}
+  };
+  if(replyingTo){
+    payload.replyTo = {
+      id: replyingTo.id,
+      text: replyingTo.text || '[image]',
+      senderNick: (userCache[replyingTo.senderId]||{}).nickname || '...'
+    };
+  }
+
+  const collectionId = currentChat.type==='dm' ? 'chats' : 'groups';
+  await db.collection(collectionId).doc(currentChat.id).collection('messages').add(payload);
+
+  input.value = '';
+  pendingImageData = null; $('image-input').value = '';
+  replyingTo = null;
+  renderReplyBar(); renderImagePreview();
+}
+
+/* =========================================================================
+   10) FORWARD MESSAGE
+   ========================================================================= */
+function openForwardModal(msgId){
+  const msg = currentMessages.find(m=>m.id===msgId);
+  if(!msg) return;
+  const targets = [
+    ...[...friendUids].map(uid=>({type:'dm', id:uid, label:(userCache[uid]||{}).nickname||'...'})),
+    ...myGroups.map(g=>({type:'group', id:g.id, label:g.name}))
+  ];
+  const listHtml = targets.map(t=>`<div class="list-item" data-fwd-target="${t.type}:${t.id}">
+      <div class="list-avatar">${t.type==='dm' ? avatarHtml(userCache[t.id]) : `<div class="avatar-fallback" style="background:${colorForUid(t.id)}">${escapeHtml(t.label[0].toUpperCase())}</div>`}</div>
+      <div class="list-name">${escapeHtml(t.label)}${t.type==='group'?' (group)':''}</div>
+    </div>`).join('') || '<div class="empty-note">No friends or groups to forward to yet.</div>';
+
+  openModal(`
+    <div class="modal-title">Forward message <span class="close-x" data-close>✕</span></div>
+    <div>${listHtml}</div>
+  `);
+  document.querySelectorAll('[data-fwd-target]').forEach(row=>{
+    row.addEventListener('click', async ()=>{
+      const [type, id] = row.dataset.fwdTarget.split(':');
+      const sender = userCache[msg.senderId] || {nickname:'someone'};
+      const payload = {
+        senderId: me.uid, senderNick: me.nickname,
+        text: msg.text || '', imageData: msg.imageData || null,
+        timestamp: FieldValue.serverTimestamp(), reactions: {},
+        forwardedFrom: sender.nickname
+      };
+      if(type==='dm'){
+        await ensureChatDoc(chatIdFor(me.uid,id), 'dm', [me.uid, id], null);
+        await db.collection('chats').doc(chatIdFor(me.uid,id)).collection('messages').add(payload);
+      } else {
+        await db.collection('groups').doc(id).collection('messages').add(payload);
+      }
+      closeModal();
+      showToast('Message forwarded.');
+    });
+  });
+}
+
+/* =========================================================================
+   11) PROFILE MODALS
+   ========================================================================= */
+function openModal(innerHtml){
+  closeModal();
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'active-modal';
+  overlay.innerHTML = `<div class="modal-box">${innerHtml}</div>`;
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) closeModal(); });
+  document.body.appendChild(overlay);
+  overlay.querySelectorAll('[data-close]').forEach(x=>x.addEventListener('click', closeModal));
+}
+function closeModal(){ const m = $('active-modal'); if(m) m.remove(); }
+
+async function openProfileModal(uid){
+  const u = await getUser(uid);
+  const isMe = uid === me.uid;
+  let actionHtml = '';
+  if(!isMe){
+    if(friendUids.has(uid)){
+      actionHtml = `<button class="ghost" disabled>✓ Friends</button>`;
+    } else {
+      const pendingOut = outgoingRequests.find(r=>r.to===uid);
+      const pendingIn = incomingRequests.find(r=>r.from===uid);
+      if(pendingOut) actionHtml = `<button class="ghost" disabled>Request sent</button>`;
+      else if(pendingIn) actionHtml = `<button class="primary" id="modal-accept">Accept friend request</button>`;
+      else actionHtml = `<button class="primary" id="modal-add-friend">Add Friend</button>`;
+    }
+  }
+  openModal(`
+    <div class="profile-banner"></div>
+    <div class="profile-avatar-lg">${avatarHtml(u)}</div>
+    <div class="profile-nick">${escapeHtml(u.nickname)}</div>
+    <div class="profile-bio">${escapeHtml(u.bio || 'No bio yet.')}</div>
+    <div class="modal-actions">
+      ${actionHtml}
+      ${!isMe ? `<button class="ghost" id="modal-message">Message</button>` : ''}
+    </div>
+    <div style="text-align:right; margin-top:14px;"><span class="close-x" data-close>Close</span></div>
+  `);
+  if($('modal-add-friend')) $('modal-add-friend').addEventListener('click', async ()=>{ await sendFriendRequestTo(uid); closeModal(); });
+  if($('modal-accept')) $('modal-accept').addEventListener('click', async ()=>{
+    const req = incomingRequests.find(r=>r.from===uid);
+    if(req) await acceptFriendRequest(req.id, uid);
+    closeModal();
+  });
+  if($('modal-message')) $('modal-message').addEventListener('click', ()=>{ closeModal(); openDM(uid); $('rail-friends').click(); });
+}
+
+function openOwnProfileModal(){
+  openModal(`
+    <div class="profile-banner"></div>
+    <div class="profile-avatar-lg">${avatarHtml(me)}</div>
+    <div class="field-label" style="margin:14px 6px 4px;">Nickname</div>
+    <div style="margin:0 6px 10px; color:var(--text-dim); font-size:14px;">${escapeHtml(me.nickname)} (cannot be changed)</div>
+    <div class="field-label" style="margin:0 6px 4px;">Avatar image URL (optional)</div>
+    <input id="edit-avatar" type="text" value="${escapeHtml(me.avatar||'')}" placeholder="https://..." style="width:calc(100% - 12px); margin:0 6px 10px;" />
+    <div class="field-label" style="margin:0 6px 4px;">Bio</div>
+    <textarea id="edit-bio" rows="3" style="width:calc(100% - 12px); margin:0 6px 14px;">${escapeHtml(me.bio||'')}</textarea>
+    <div class="modal-actions">
+      <button class="primary" id="save-profile" style="flex:1;">Save changes</button>
+    </div>
+    <hr/>
+    <div class="modal-actions">
+      <button class="danger" id="logout-btn" style="flex:1;">Log Out</button>
+    </div>
+  `);
+  $('save-profile').addEventListener('click', async ()=>{
+    const bio = $('edit-bio').value.trim();
+    const avatar = $('edit-avatar').value.trim();
+    await db.collection('users').doc(me.uid).update({ bio, avatar });
+    me.bio = bio; me.avatar = avatar; userCache[me.uid] = me;
+    renderRailAvatar();
+    closeModal();
+    showToast('Profile updated.');
+  });
+  $('logout-btn').addEventListener('click', ()=>{ closeModal(); auth.signOut(); });
+}
+</script>
+</body>
+</html>
