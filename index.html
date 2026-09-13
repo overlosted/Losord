@@ -164,13 +164,25 @@
   .msg-forwarded{font-size:11px; color:var(--text-dim); font-style:italic; margin-bottom:2px;}
   .msg-text{font-size:14.5px; line-height:1.45; white-space:pre-wrap; word-break:break-word;}
   .msg-image{max-width:320px; max-height:320px; border-radius:8px; margin-top:6px; display:block; cursor:pointer;}
-  .msg-reactions{display:flex; gap:6px; margin-top:6px; flex-wrap:wrap;}
+  .msg-reactions{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;}
   .reaction-chip{
-    background:var(--black-3); border:1px solid var(--border); border-radius:12px;
-    padding:2px 8px; font-size:12px; display:flex; align-items:center; gap:4px; cursor:pointer;
+    background:var(--black-3); border:1px solid var(--border); border-radius:14px;
+    padding:3px 10px; font-size:13px; display:flex; align-items:center; gap:6px; cursor:pointer;
+    transition:.12s;
   }
-  .reaction-chip.mine{border-color:var(--red); background:var(--red-dark);}
-  .reaction-chip:hover{background:var(--black-4);}
+  .reaction-chip .reaction-emoji{font-size:14px; line-height:1;}
+  .reaction-chip .reaction-count{font-size:12px; font-weight:600; color:var(--text-dim);}
+  .reaction-chip.mine{border-color:var(--red); background:rgba(217,39,58,0.18);}
+  .reaction-chip.mine .reaction-count{color:var(--red-bright);}
+  .reaction-chip:hover{background:var(--black-4); border-color:var(--red-bright); transform:translateY(-1px);}
+  .msg-edited-tag{font-size:11px; color:var(--text-dim); margin-top:2px; font-style:italic;}
+  .msg-edit-wrap{margin-top:4px;}
+  .msg-edit-textarea{
+    width:100%; min-height:44px; resize:vertical; border-radius:8px; padding:9px 11px; font-size:14.5px;
+    border-color:var(--red);
+  }
+  .msg-edit-actions{display:flex; gap:8px; margin-top:6px;}
+  .msg-edit-actions button{padding:5px 12px; font-size:12.5px;}
   .msg-actions{
     position:absolute; top:-14px; right:8px; opacity:0; transition:.12s; display:flex; gap:2px;
     background:var(--black-3); border:1px solid var(--border); border-radius:8px; padding:2px;
@@ -178,11 +190,27 @@
   .msg-actions button{padding:4px 7px; font-size:13px; background:transparent;}
   .msg-actions button:hover{background:var(--red-dark);}
   .emoji-picker{
-    position:absolute; top:-46px; right:8px; background:var(--black-3); border:1px solid var(--border);
-    border-radius:8px; padding:6px; display:flex; gap:4px; z-index:20;
+    position:absolute; top:auto; bottom:36px; right:8px; background:var(--black-3); border:1px solid var(--border);
+    border-radius:10px; padding:10px; z-index:20; width:220px; box-shadow:0 8px 24px rgba(0,0,0,.5);
   }
-  .emoji-picker span{cursor:pointer; font-size:18px; padding:2px;}
-  .emoji-picker span:hover{transform:scale(1.2);}
+  .emoji-grid{display:grid; grid-template-columns:repeat(6, 1fr); gap:2px; margin-bottom:8px;}
+  .emoji-picker span{cursor:pointer; padding:5px; color:var(--text-dim); display:flex; align-items:center; justify-content:center; border-radius:6px; font-size:18px;}
+  .emoji-picker span:hover{background:var(--red-dark); transform:scale(1.15);}
+  .emoji-custom-row{display:flex; gap:6px; border-top:1px solid var(--border); padding-top:8px;}
+  .emoji-custom-row input{flex:1; font-size:16px; padding:6px 8px;}
+  .emoji-custom-row button{padding:6px 10px; font-size:12px;}
+  .reaction-chip svg{width:14px; height:14px; vertical-align:-2px;}
+  .msg-actions svg{width:16px; height:16px;}
+
+  /* profile picture upload */
+  .avatar-edit-wrap{position:relative; display:inline-block; cursor:pointer;}
+  .camera-overlay{
+    position:absolute; inset:0; border-radius:50%; background:rgba(0,0,0,.55);
+    display:flex; align-items:center; justify-content:center; opacity:0; transition:.15s;
+  }
+  .avatar-edit-wrap:hover .camera-overlay{opacity:1;}
+  .camera-overlay svg{width:26px; height:26px; color:#fff;}
+  .nick-cooldown-note{font-size:12px; color:var(--text-dim); margin:0 6px 10px;}
 
   #reply-bar{
     display:flex; align-items:center; justify-content:space-between; background:var(--black-3);
@@ -381,7 +409,9 @@ function formatTimestamp(ts){
 }
 function chatIdFor(uidA, uidB){ return [uidA, uidB].sort().join('_'); }
 
-const REACTION_EMOJIS = ['👍','❤️','😂','😮','😢','🔥'];
+const QUICK_EMOJIS = ['👍','❤️','😂','😮','😢','🔥','🎉','👀','🙏','💯','😡','👏','😍','🤔','😴','🥳','💀','😎','🚀','✅'];
+const NICK_COOLDOWN_MS = 7*24*60*60*1000; // 7 days
+let pendingAvatarData = null; // base64 of newly picked profile picture, staged until "Save changes"
 
 /* ---------------------------- app state ---------------------------- */
 let me = null;                 // { uid, nickname, nicknameLower, bio, avatar }
@@ -390,9 +420,11 @@ let currentChat = null;         // { id, type:'dm'|'group', name, members[], oth
 let currentMessages = [];       // live cache of messages in the open chat
 let replyingTo = null;          // message object being replied to
 let pendingImageData = null;    // base64 data url of image about to be sent
+let pendingGroupAvatarData = null; // base64 of newly picked group picture, staged until save
+let blockedByMe = new Set();    // uids I have blocked
 
 let unsubFriends = null, unsubIncoming = null, unsubOutgoing = null,
-    unsubGroups = null, unsubMessages = null, unsubChatMeta = null;
+    unsubGroups = null, unsubMessages = null, unsubChatMeta = null, unsubBlocked = null;
 
 /* =========================================================================
    2) AUTH: register / login / logout
@@ -485,6 +517,7 @@ auth.onAuthStateChanged(async (user)=>{
     listenIncomingRequests();
     listenOutgoingRequests();
     listenGroups();
+    listenBlocked();
   } else {
     me = null;
     cleanupListeners();
@@ -494,7 +527,7 @@ auth.onAuthStateChanged(async (user)=>{
 });
 
 function cleanupListeners(){
-  [unsubFriends, unsubIncoming, unsubOutgoing, unsubGroups, unsubMessages, unsubChatMeta]
+  [unsubFriends, unsubIncoming, unsubOutgoing, unsubGroups, unsubMessages, unsubChatMeta, unsubBlocked]
     .forEach(u=>{ if(u) u(); });
   currentChat = null; currentMessages = [];
   $('chat-active').classList.add('hidden');
@@ -660,6 +693,39 @@ async function declineFriendRequest(reqId){
   await db.collection('friendRequests').doc(reqId).delete();
 }
 
+async function unfriendUser(uid){
+  if(!confirm('Remove this friend?')) return;
+  const batch = db.batch();
+  batch.delete(db.collection('users').doc(me.uid).collection('friends').doc(uid));
+  batch.delete(db.collection('users').doc(uid).collection('friends').doc(me.uid));
+  await batch.commit();
+  showToast('Friend removed.');
+}
+
+/* ---------------------------- blocking ---------------------------- */
+function listenBlocked(){
+  unsubBlocked = db.collection('users').doc(me.uid).collection('blocked')
+    .onSnapshot(async snap=>{
+      blockedByMe = new Set(snap.docs.map(d=>d.id));
+      await Promise.all([...blockedByMe].map(getUser));
+      renderFriendsBody();
+    });
+}
+async function blockUser(uid){
+  await db.collection('users').doc(me.uid).collection('blocked').doc(uid).set({ blockedAt: FieldValue.serverTimestamp() });
+  if(friendUids.has(uid)){
+    const batch = db.batch();
+    batch.delete(db.collection('users').doc(me.uid).collection('friends').doc(uid));
+    batch.delete(db.collection('users').doc(uid).collection('friends').doc(me.uid));
+    await batch.commit();
+  }
+  showToast('User blocked.');
+}
+async function unblockUser(uid){
+  await db.collection('users').doc(me.uid).collection('blocked').doc(uid).delete();
+  showToast('User unblocked.');
+}
+
 /* =========================================================================
    6) GROUPS
    ========================================================================= */
@@ -792,7 +858,7 @@ function renderMessages(){
     if(m.reactions){
       const chips = Object.entries(m.reactions).filter(([e,uids])=>uids && uids.length>0).map(([emoji, uids])=>{
         const mine = uids.includes(me.uid);
-        return `<div class="reaction-chip ${mine?'mine':''}" data-react="${m.id}" data-emoji="${emoji}">${emoji} ${uids.length}</div>`;
+        return `<div class="reaction-chip ${mine?'mine':''}" data-react="${m.id}" data-emoji="${emoji}"><span class="reaction-emoji">${emoji}</span><span class="reaction-count">${uids.length}</span></div>`;
       }).join('');
       if(chips) reactHtml = `<div class="msg-reactions">${chips}</div>`;
     }
@@ -807,13 +873,16 @@ function renderMessages(){
           </div>
           ${replyHtml}
           ${m.text ? `<div class="msg-text">${escapeHtml(m.text)}</div>` : ''}
+          ${m.edited ? `<div class="msg-edited-tag">Edited</div>` : ''}
           ${imgHtml}
           ${reactHtml}
         </div>
         <div class="msg-actions">
-          <button data-react-open="${m.id}" title="React">😊</button>
+          <button data-react-open="${m.id}" title="React"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01M15 9h.01"/></svg></button>
           <button data-reply="${m.id}" title="Reply">↩</button>
           <button data-forward="${m.id}" title="Forward">↪</button>
+          ${isMine ? `<button data-edit="${m.id}" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>
+          <button data-delete="${m.id}" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/></svg></button>` : ''}
         </div>
       </div>`;
   }).join('');
@@ -835,16 +904,35 @@ function renderMessages(){
   el.querySelectorAll('[data-react-open]').forEach(node=>{
     node.addEventListener('click', (ev)=>openEmojiPicker(ev, node.dataset.reactOpen));
   });
+  el.querySelectorAll('[data-edit]').forEach(node=>{
+    node.addEventListener('click', ()=>startEditMessage(node.dataset.edit));
+  });
+  el.querySelectorAll('[data-delete]').forEach(node=>{
+    node.addEventListener('click', ()=>deleteMessage(node.dataset.delete));
+  });
 }
 
 function openEmojiPicker(ev, msgId){
   document.querySelectorAll('.emoji-picker').forEach(p=>p.remove());
   const picker = document.createElement('div');
   picker.className = 'emoji-picker';
-  picker.innerHTML = REACTION_EMOJIS.map(e=>`<span data-emoji="${e}">${e}</span>`).join('');
+  picker.innerHTML = `
+    <div class="emoji-grid">${QUICK_EMOJIS.map(e=>`<span data-emoji="${e}">${e}</span>`).join('')}</div>
+    <div class="emoji-custom-row">
+      <input type="text" id="custom-emoji-input" maxlength="8" placeholder="Type any emoji" />
+      <button class="ghost" id="custom-emoji-add">Add</button>
+    </div>`;
   ev.target.closest('.msg-actions').appendChild(picker);
-  picker.querySelectorAll('span').forEach(s=>{
+  picker.querySelectorAll('.emoji-grid span').forEach(s=>{
     s.addEventListener('click', ()=>{ toggleReaction(msgId, s.dataset.emoji); picker.remove(); });
+  });
+  picker.querySelector('#custom-emoji-add').addEventListener('click', ()=>{
+    const val = picker.querySelector('#custom-emoji-input').value.trim();
+    if(val){ toggleReaction(msgId, val); }
+    picker.remove();
+  });
+  picker.querySelector('#custom-emoji-input').addEventListener('keydown', e=>{
+    if(e.key==='Enter'){ e.preventDefault(); picker.querySelector('#custom-emoji-add').click(); }
   });
   setTimeout(()=>{
     document.addEventListener('click', function outside(e){
@@ -860,6 +948,49 @@ async function toggleReaction(msgId, emoji){
   const ref = db.collection(collectionId).doc(currentChat.id).collection('messages').doc(msgId);
   const field = `reactions.${emoji}`;
   await ref.update({ [field]: already ? FieldValue.arrayRemove(me.uid) : FieldValue.arrayUnion(me.uid) });
+}
+
+/* ---- edit & delete own messages ---- */
+function startEditMessage(msgId){
+  const msg = currentMessages.find(m=>m.id===msgId);
+  if(!msg) return;
+  const textEl = document.querySelector(`.msg-row[data-msg-id="${msgId}"] .msg-text`);
+  const original = msg.text || '';
+  const wrapHtml = `<div class="msg-edit-wrap" id="edit-wrap-${msgId}">
+      <textarea class="msg-edit-textarea" id="edit-textarea-${msgId}">${escapeHtml(original)}</textarea>
+      <div class="msg-edit-actions">
+        <button class="ghost" data-cancel-edit="${msgId}">Cancel</button>
+        <button class="primary" data-save-edit="${msgId}">Save</button>
+      </div>
+    </div>`;
+  if(textEl){ textEl.outerHTML = wrapHtml; }
+  else {
+    const body = document.querySelector(`.msg-row[data-msg-id="${msgId}"] .msg-body`);
+    body.insertAdjacentHTML('beforeend', wrapHtml);
+  }
+  const ta = document.getElementById(`edit-textarea-${msgId}`);
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+  ta.addEventListener('keydown', e=>{
+    if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); saveEditMessage(msgId); }
+    if(e.key==='Escape'){ renderMessages(); }
+  });
+  document.querySelector(`[data-save-edit="${msgId}"]`).addEventListener('click', ()=>saveEditMessage(msgId));
+  document.querySelector(`[data-cancel-edit="${msgId}"]`).addEventListener('click', ()=>renderMessages());
+}
+async function saveEditMessage(msgId){
+  const ta = document.getElementById(`edit-textarea-${msgId}`);
+  const newText = ta.value.trim();
+  if(!newText) return;
+  const collectionId = currentChat.type==='dm' ? 'chats' : 'groups';
+  await db.collection(collectionId).doc(currentChat.id).collection('messages').doc(msgId).update({
+    text: newText, edited: true, editedAt: FieldValue.serverTimestamp()
+  });
+}
+async function deleteMessage(msgId){
+  if(!confirm('Delete this message? This cannot be undone.')) return;
+  const collectionId = currentChat.type==='dm' ? 'chats' : 'groups';
+  await db.collection(collectionId).doc(currentChat.id).collection('messages').doc(msgId).delete();
 }
 
 /* =========================================================================
@@ -1041,16 +1172,38 @@ async function openProfileModal(uid){
   if($('modal-message')) $('modal-message').addEventListener('click', ()=>{ closeModal(); openDM(uid); $('rail-friends').click(); });
 }
 
+function nicknameCooldownInfo(){
+  if(!me.lastNicknameChangeAt) return { canChange:true, daysLeft:0 };
+  const changedAt = me.lastNicknameChangeAt.toDate ? me.lastNicknameChangeAt.toDate().getTime() : new Date(me.lastNicknameChangeAt).getTime();
+  const elapsed = Date.now() - changedAt;
+  if(elapsed >= NICK_COOLDOWN_MS) return { canChange:true, daysLeft:0 };
+  const daysLeft = Math.ceil((NICK_COOLDOWN_MS - elapsed) / (24*60*60*1000));
+  return { canChange:false, daysLeft };
+}
+
 function openOwnProfileModal(){
+  pendingAvatarData = null;
+  const cooldown = nicknameCooldownInfo();
   openModal(`
     <div class="profile-banner"></div>
-    <div class="profile-avatar-lg">${avatarHtml(me)}</div>
+    <div class="avatar-edit-wrap profile-avatar-lg" id="avatar-edit-wrap">
+      ${avatarHtml(me)}
+      <div class="camera-overlay" id="camera-overlay">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+      </div>
+    </div>
+    <input type="file" id="avatar-file-input" accept="image/*" class="hidden" />
+
     <div class="field-label" style="margin:14px 6px 4px;">Nickname</div>
-    <div style="margin:0 6px 10px; color:var(--text-dim); font-size:14px;">${escapeHtml(me.nickname)} (cannot be changed)</div>
-    <div class="field-label" style="margin:0 6px 4px;">Avatar image URL (optional)</div>
-    <input id="edit-avatar" type="text" value="${escapeHtml(me.avatar||'')}" placeholder="https://..." style="width:calc(100% - 12px); margin:0 6px 10px;" />
+    <input id="edit-nick" type="text" value="${escapeHtml(me.nickname)}" ${cooldown.canChange?'':'disabled'} style="width:calc(100% - 12px); margin:0 6px 4px;" />
+    <div class="nick-cooldown-note">${cooldown.canChange ? 'You can change your nickname (once every 7 days).' : `You can change your nickname again in ${cooldown.daysLeft} day(s).`}</div>
+
     <div class="field-label" style="margin:0 6px 4px;">Bio</div>
     <textarea id="edit-bio" rows="3" style="width:calc(100% - 12px); margin:0 6px 14px;">${escapeHtml(me.bio||'')}</textarea>
+    <div class="auth-error" id="profile-edit-error" style="margin:0 6px 8px;"></div>
     <div class="modal-actions">
       <button class="primary" id="save-profile" style="flex:1;">Save changes</button>
     </div>
@@ -1059,11 +1212,50 @@ function openOwnProfileModal(){
       <button class="danger" id="logout-btn" style="flex:1;">Log Out</button>
     </div>
   `);
+
+  $('camera-overlay').addEventListener('click', ()=>$('avatar-file-input').click());
+  $('avatar-file-input').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    if(file.size > 500*1024){ showToast('Picture too large — please use one under ~500 KB.'); return; }
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      pendingAvatarData = reader.result;
+      $('avatar-edit-wrap').innerHTML = `<img src="${pendingAvatarData}"/><div class="camera-overlay" id="camera-overlay-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>`;
+      $('camera-overlay-2').addEventListener('click', ()=>$('avatar-file-input').click());
+    };
+    reader.readAsDataURL(file);
+  });
+
   $('save-profile').addEventListener('click', async ()=>{
+    const errEl = $('profile-edit-error'); errEl.textContent = '';
     const bio = $('edit-bio').value.trim();
-    const avatar = $('edit-avatar').value.trim();
-    await db.collection('users').doc(me.uid).update({ bio, avatar });
-    me.bio = bio; me.avatar = avatar; userCache[me.uid] = me;
+    const newNick = $('edit-nick').value.trim();
+    const updates = { bio };
+    if(pendingAvatarData) updates.avatar = pendingAvatarData;
+
+    if(newNick && newNick !== me.nickname){
+      if(!nicknameCooldownInfo().canChange){ errEl.textContent = 'You can only change your nickname once every 7 days.'; return; }
+      if(!/^[A-Za-z0-9_]{3,20}$/.test(newNick)){ errEl.textContent = 'Nickname must be 3-20 characters: letters, numbers, underscore.'; return; }
+      const newLower = newNick.toLowerCase();
+      if(newLower !== me.nicknameLower){
+        const nameDoc = await db.collection('usernames').doc(newLower).get();
+        if(nameDoc.exists){ errEl.textContent = 'This nickname is already taken.'; return; }
+        const batch = db.batch();
+        batch.delete(db.collection('usernames').doc(me.nicknameLower));
+        batch.set(db.collection('usernames').doc(newLower), { uid: me.uid });
+        batch.update(db.collection('users').doc(me.uid), {
+          nickname: newNick, nicknameLower: newLower, lastNicknameChangeAt: FieldValue.serverTimestamp(), ...updates
+        });
+        await batch.commit();
+        me.nickname = newNick; me.nicknameLower = newLower; me.lastNicknameChangeAt = { toDate: ()=>new Date() };
+      }
+    } else {
+      await db.collection('users').doc(me.uid).update(updates);
+    }
+
+    Object.assign(me, updates);
+    userCache[me.uid] = me;
     renderRailAvatar();
     closeModal();
     showToast('Profile updated.');
